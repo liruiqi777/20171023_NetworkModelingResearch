@@ -130,8 +130,8 @@ def shock_effect(thresholds):
         effect = np.random.normal(shock_value, sd[i], 1)[0]
         new_thresholds[i] = new_thresholds[i] + (1/2)*effect*(1-new_thresholds[i])
     
-    print("Standard Deviation generated for each agent during this shock:")
-    print(sd)
+#    print("Standard Deviation generated for each agent during this shock:")
+#    print(sd)
         
     #check that new_threshold is within the boundary
     return new_thresholds
@@ -292,10 +292,10 @@ def main():
 
     star_graph = nx.star_graph(num_nodes - 1).to_directed()
 
-# graphs = [erdos_renyi_graph, barabasi_albert_graph, watts_strogatz_graph,
-#       star_graph]
+    graphs = [erdos_renyi_graph, barabasi_albert_graph, watts_strogatz_graph,
+       star_graph]
 
-    graphs = [star_graph, watts_strogatz_graph]
+#    graphs = [star_graph, watts_strogatz_graph]
 
     # generate the weights
     for graph_index, graph in enumerate(graphs):
@@ -357,9 +357,9 @@ def main():
     for i in range(MAX_ITERATION):
         new_thresholds = shock_effect(new_thresholds)
         thresholds_array.append(new_thresholds)
-        print("The new threshold generated is: ")
-        print(new_thresholds)
-        print()
+#        print("The new threshold generated is: ")
+#        print(new_thresholds)
+#        print()
 
 
     print("\n\n\nShock History:\n")
@@ -405,10 +405,12 @@ def main():
         save_records(i)
         
         #print the percentage of adopters--nd
+        #print("Percentage of final adopters for {} graph: {}".format(\
+        #      GRAPH_TOPOLOGY_NAME[i], (curr_state.count(1)-num_nodes*0.1)\
+        #      /(num_nodes*0.9))
+        #)
         print("Percentage of final adopters for {} graph: {}".format(\
-              GRAPH_TOPOLOGY_NAME[i], (curr_state.count(1)-num_nodes*0.1)\
-              /(num_nodes*0.9))
-        ) 
+            GRAPH_TOPOLOGY_NAME[i], (curr_state.count(1)/num_nodes)))
 
 import time
 # main
