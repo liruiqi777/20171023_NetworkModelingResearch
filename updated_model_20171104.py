@@ -52,8 +52,8 @@ from datetime import datetime       # Capture current time
 # MAX_ITERATION = 200
 MAX_ITERATION = 30
 MAX_EQUILIBRIUM_ITERATION = 100
-MAX_DEVIATION = 0.3
-SHOCK_MEAN = 0
+MAX_DEVIATION = 0.05  ##previously 0.3
+SHOCK_MEAN = 0  ##previously 0 
 # SHOCK_SD = 0.3
 SHOCK_SD = 0.05
 BARABASI_EDGE_FACTOR = 5
@@ -84,7 +84,7 @@ def compute_mean_weight(equilibrium, G):
 
     total_weight_of_adopters = 0
 
-    # go throug each node in the equilibrium, and sum up the total weighted 
+    # go through each node in the equilibrium, and sum up the total weighted 
     # influenced on that node from its incoming neighbors
     for node, action in enumerate(equilibrium):
         if (action == 1):
@@ -107,7 +107,7 @@ def calculate_proportion_change(prev_state, curr_state):
     
     return float(total_change) / len(prev_state)
 
-# perform the shock (more detailed documentation in the writeup)
+# perform the 7 (more detailed documentation in the writeup)
 def shock_effect(thresholds):
 
     global shock_history
@@ -117,21 +117,48 @@ def shock_effect(thresholds):
     new_thresholds = list(thresholds)
 
     # generate shock value
-    # shock should be chosen from uniform distribution? --nd
-    shock_value = np.random.normal(SHOCK_MEAN, SHOCK_SD, 1)[0]
+    #shock_value = np.random.normal(SHOCK_MEAN, SHOCK_SD, 1)[0]
+    # each node's reaction to the shock--list of sd of each node(len=num_nodes)
+    #sd = np.random.uniform(0, MAX_DEVIATION, num_nodes)
 
-    shock_history.append(shock_value)
-
-    # each node's reaction to the shock
-    sd = np.random.uniform(0, MAX_DEVIATION, num_nodes)
-
+    '''
     # assign new threshold by drawing from the normal distribution
     for i, t in enumerate(thresholds):
         effect = np.random.normal(shock_value, sd[i], 1)[0]
         new_thresholds[i] = new_thresholds[i] + (1/2)*effect*(1-new_thresholds[i])
+        print(effect)
+    '''
+
+    # my attempt to implement the distributions--nan
+    # pick s in [-1,1] and k in [0,1] -- s and k are used to generate values f and g 
+    #   for the shock effect
+    s = np.random.uniform(0,1,1)
+    k = np.random.uniform(0.5, 0.5, 1)
+    shock_value=s
+
+    for i, t in enumerate(thresholds):
+        x  = new_thresholds[i]
+        ## this is to make sure f and g are always in [0,1]
+        if (x < s):
+            f = (x+1)/(s+1)
+            g = (x-s+k*(1+s))/(k*k*(1+s))
+        elif(x>=s):
+            f = (x-1)/(s-1)
+            g = (s-x+k*(1-s))/(k*k*(1-s))
+
+        ## take the smaller value to make sure effect is always in the distribution given by
+            ## (x+-1)/(s+-1)
+        effect = min(f, g)
+        new_thresholds[i] = new_thresholds[i] + (1/2)*effect*(1-new_thresholds[i])
+        print(effect)
+
+
+
+    shock_history.append(shock_value)
+
     
-#    print("Standard Deviation generated for each agent during this shock:")
-#    print(sd)
+    
+
         
     #check that new_threshold is within the boundary
     return new_thresholds
@@ -247,8 +274,6 @@ def main():
     if (argc == 3):
         num_nodes, prob_of_initial = list(map(float, argv[1:]))
         num_nodes = int(num_nodes)
-        #testing--nd
-        print("imhere")
         
     # If the user has provided a YAML file, read it.
     elif (argc == 2):
@@ -345,7 +370,11 @@ def main():
 
     # my attempt to make the code work -- Sally[1]
     # thresholds is a [list] of doubles taken from a uniform distribution [0,1) 
-    thresholds = np.random.uniform(0, 1, num_nodes)  
+    thresholds = np.random.uniform(0, 1, num_nodes)
+
+    for i in range(0, len(init_state)):
+        if(init_state[i] == 1):
+            thresholds[i] = -10  
 
     # should we fix shock to both graphs, as well as its effect
     thresholds_array = []
@@ -360,6 +389,7 @@ def main():
 #        print("The new threshold generated is: ")
 #        print(new_thresholds)
 #        print()
+    #print("the thresholds after the shock are:", thresholds_array)
 
 
     print("\n\n\nShock History:\n")
@@ -397,6 +427,7 @@ def main():
             if (curr_time < MAX_ITERATION):
                 thresholds = thresholds_array[curr_time]
 
+
         print("Number of final adopters for {} graph: {}".format(\
             GRAPH_TOPOLOGY_NAME[i], curr_state.count(1)))
 
@@ -411,6 +442,10 @@ def main():
         #)
         print("Percentage of final adopters for {} graph: {}".format(\
             GRAPH_TOPOLOGY_NAME[i], (curr_state.count(1)/num_nodes)))
+    print("thresholds after shock:", thresholds_array[len(thresholds_array)-1])
+    out_range = 0
+    
+
 
 import time
 # main
