@@ -116,52 +116,28 @@ def shock_effect(thresholds):
 
     new_thresholds = list(thresholds)
 
-    # generate shock value
-    #shock_value = np.random.normal(SHOCK_MEAN, SHOCK_SD, 1)[0]
-    # each node's reaction to the shock--list of sd of each node(len=num_nodes)
-    #sd = np.random.uniform(0, MAX_DEVIATION, num_nodes)
-
-    '''
-    # assign new threshold by drawing from the normal distribution
-    for i, t in enumerate(thresholds):
-        effect = np.random.normal(shock_value, sd[i], 1)[0]
-        new_thresholds[i] = new_thresholds[i] + (1/2)*effect*(1-new_thresholds[i])
-        print(effect)
-    '''
+    
 
     # my attempt to implement the distributions--nan
     # pick s in [-1,1] and k in [0,1] -- s and k are used to generate values f and g 
     #   for the shock effect
-    s = np.random.uniform(0,1,1)
-    k = np.random.uniform(0.5, 0.5, 1)
-    shock_value=s
+    s1 = np.random.uniform(0,1,1)
+    s2 = np.random.uniform(0,1,1)
+
+    # store shock value 
+    # we could consider (s1+s2)/2 or (s1-s2)/2
+    shock_value = (s1+s2)/2
 
     for i, t in enumerate(thresholds):
-        x  = new_thresholds[i]
-        ## this is to make sure f and g are always in [0,1]
-        if (x < s):
-            f = (x+1)/(s+1)
-            g = (x-s+k*(1+s))/(k*k*(1+s))
-        elif(x>=s):
-            f = (x-1)/(s-1)
-            g = (s-x+k*(1-s))/(k*k*(1-s))
-
-        ## take the smaller value to make sure effect is always in the distribution given by
-            ## (x+-1)/(s+-1)
-        effect = min(f, g)
-        new_thresholds[i] = new_thresholds[i] + (1/2)*effect*(1-new_thresholds[i])
-        print(effect)
-
-
+        x = thresholds[i]
+        effect = (s2-s1)*x + s1
+        new_thresholds[i] = x + (1/2)*effect*(1-np.square(x))
 
     shock_history.append(shock_value)
 
-    
-    
-
-        
     #check that new_threshold is within the boundary
     return new_thresholds
+
 
 # find the equilibrium of network G given initial state
 def find_equilibrium(init_state, G, thresholds):
