@@ -121,12 +121,15 @@ def shock_effect(thresholds):
     # my attempt to implement the distributions--nan
     # pick s in [-1,1] and k in [0,1] -- s and k are used to generate values f and g 
     #   for the shock effect
-    s1 = np.random.uniform(0,1,1)
-    s2 = np.random.uniform(0,1,1)
+    s1 = np.random.uniform(-1,1,1)
+    s1 = s1[0]
+    s2 = np.random.uniform(-1,1,1)
+    s2 = s2[0]
 
     # store shock value 
     # we could consider (s1+s2)/2 or (s1-s2)/2
     shock_value = (s1+s2)/2
+
 
     for i, t in enumerate(thresholds):
         x = thresholds[i]
