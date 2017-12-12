@@ -133,8 +133,11 @@ def shock_effect(thresholds):
 
     for i, t in enumerate(thresholds):
         x = thresholds[i]
-        effect = (s2-s1)*x + s1
-        new_thresholds[i] = x + (1/2)*effect*(1-np.square(x))
+        if(x == np.float64(-10)):
+            continue
+        else:
+            effect = (s2-s1)*x + s1
+            new_thresholds[i] = x + (1/2)*effect*(1-np.square(x))
 
     shock_history.append(shock_value)
 
@@ -423,6 +426,14 @@ def main():
             GRAPH_TOPOLOGY_NAME[i], (curr_state.count(1)/num_nodes)))
     print("thresholds after shock:", thresholds_array[len(thresholds_array)-1])
     out_range = 0
+    
+
+    import matplotlib.pyplot as plt
+    #plt.scatter(thresholds, curr_state)
+    plt.plot(thresholds, curr_state)
+    plt.xlabel("threshold values")
+    plt.ylabel("final state")
+    plt.show() 
     
 
 
