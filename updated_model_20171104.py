@@ -1,3 +1,7 @@
+#By Nan
+#1. Shock effect changed to triangle distribution
+#2. Initial adopters will not change
+
 #!/usr/bin/env python
 ''' 
 # ==============================================================================
@@ -128,7 +132,7 @@ def shock_effect(thresholds):
 
     # store shock value 
     # we could consider (s1+s2)/2 or (s1-s2)/2
-    shock_value = (s1+s2)/2
+    shock_value = (s1+s2)/2 #Just to keep track of shocks
 
 
     for i, t in enumerate(thresholds):

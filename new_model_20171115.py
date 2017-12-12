@@ -1,3 +1,8 @@
+#By Sally
+#1. Apply shocks to only a subset of nodes
+#2. Can control iterations by pressing enter
+#3. Recording more info
+
 #!/usr/bin/env python
 
 # ==============================================================================
