@@ -1,3 +1,7 @@
+#By Nan
+#1. Shock effect changed to triangle distribution
+#2. Initial adopters will not change
+
 #!/usr/bin/env python
 ''' 
 # ==============================================================================
@@ -121,17 +125,23 @@ def shock_effect(thresholds):
     # my attempt to implement the distributions--nan
     # pick s in [-1,1] and k in [0,1] -- s and k are used to generate values f and g 
     #   for the shock effect
-    s1 = np.random.uniform(0,1,1)
-    s2 = np.random.uniform(0,1,1)
+    s1 = np.random.uniform(-1,1,1)
+    s1 = s1[0]
+    s2 = np.random.uniform(-1,1,1)
+    s2 = s2[0]
 
     # store shock value 
     # we could consider (s1+s2)/2 or (s1-s2)/2
-    shock_value = (s1+s2)/2
+    shock_value = (s1+s2)/2 #Just to keep track of shocks
+
 
     for i, t in enumerate(thresholds):
         x = thresholds[i]
-        effect = (s2-s1)*x + s1
-        new_thresholds[i] = x + (1/2)*effect*(1-np.square(x))
+        if(x == np.float64(-10)):
+            continue
+        else:
+            effect = (s2-s1)*x + s1
+            new_thresholds[i] = x + (1/2)*effect*(1-np.square(x))
 
     shock_history.append(shock_value)
 
@@ -420,6 +430,14 @@ def main():
             GRAPH_TOPOLOGY_NAME[i], (curr_state.count(1)/num_nodes)))
     print("thresholds after shock:", thresholds_array[len(thresholds_array)-1])
     out_range = 0
+    
+
+    import matplotlib.pyplot as plt
+    #plt.scatter(thresholds, curr_state)
+    plt.plot(thresholds, curr_state)
+    plt.xlabel("threshold values")
+    plt.ylabel("final state")
+    plt.show() 
     
 
 
