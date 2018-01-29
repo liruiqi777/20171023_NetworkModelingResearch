@@ -28,7 +28,9 @@ MAX_DEVIATION = 0.3
 SHOCK_MEAN = 0
 SHOCK_SD = 0.01
 BARABASI_EDGE_FACTOR = 5
+SHOCK_PROB = 0.2
 GRAPH_TOPOLOGY_NAME = ["random", "barabasi_albert", "watts_strogatz", "star"]
+INITIAL_ADOPTER_THRESHOLD = 0.001
 
 
 # ==============================================================================
@@ -46,102 +48,6 @@ edge_info = []
 agent_state = []
 agent_thresholds = []
 
-#action_history = []
-#shock_history = []
-#mean_weight_history = []
-#percent_change_history = []
-#iteration_history = []
-
-
-
-
-
-
-
-
-
-
-## ==============================================================================
-## FUNCTIONS
-## ==============================================================================
-#
-##dont worry about it for now
-## compute the mean weight of the adopters at equilibrium
-#def compute_mean_weight(equilibrium, G):
-#
-#    total_weight_of_adopters = 0
-#
-#    # go throug each node in the equilibrium, and sum up the total weighted 
-#    # influenced on that node from its incoming neighbors
-#    for node, action in enumerate(equilibrium):
-#        if (action == 1):
-#            incoming_neighbors = G.predecessors(node)
-#            for neighbor in incoming_neighbors:
-#
-#                # only add if the neighbor is playing 1
-#                if (equilibrium[neighbor] == 1):
-#                    # My attempt to make the code work -- Sally[2]
-#                    total_weight_of_adopters += G[neighbor][node]["weight"]
-#                    # total_weight_of_adopters += G.edge[neighbor][node]["weight"]
-#
-#    return float(total_weight_of_adopters) / len(G.nodes())
-#
-## calculate the proportion change between the two states
-#def calculate_proportion_change(prev_state, curr_state):
-#    total_change = 0
-#    for i, val in enumerate(prev_state):
-#        total_change += abs(val - curr_state[i])
-#    
-#    return float(total_change) / len(prev_state)
-#
-## perform the shock (more detailed documentation in the writeup)
-#def shock_effect(thresholds):
-#
-#    global shock_history
-#
-#    num_nodes = len(thresholds)
-#
-#    new_thresholds = list(thresholds)
-#
-#    # generate shock value
-#    # shock should be chosen from uniform distribution? --nd
-#    shock_value = np.random.normal(SHOCK_MEAN, SHOCK_SD, 1)[0]
-#
-#    shock_history.append(shock_value)
-#
-#    # each node's reaction to the shock
-#    sd = np.random.uniform(0, MAX_DEVIATION, num_nodes)
-#
-#    # assign new threshold by drawing from the normal distribution
-#    for i, t in enumerate(thresholds):
-#        effect = np.random.normal(shock_value, sd[i], 1)[0]
-#        new_thresholds[i] = new_thresholds[i] + (1/2)*effect*(1-new_thresholds[i])
-#    
-##    print("Standard Deviation generated for each agent during this shock:")
-##    print(sd)
-#        
-#    #check that new_threshold is within the boundary
-#    return new_thresholds
-#
-
-#
-## write out the records to files
-#def save_records(graph_index):
-#    global action_history, shock_history, mean_weight_history, \
-#        percent_change_history, iteration_history
-#
-#    current_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-#
-#    fo = open("{}_output_{}.txt".format(current_time,
-#        GRAPH_TOPOLOGY_NAME[graph_index]), "w")
-#    fo.write("Shock value\tNum of Adopters\tProportion of Switched Nodes" + 
-#        "\tNum Iterations for Eq\tMean Weight\n")
-#
-#    # write the records to the output file
-#    for i, item in enumerate(action_history):
-#        fo.write("{}\t{}\t{}\t{}\t{}\n".format(shock_history[i], item.count(1),
-#            percent_change_history[i], iteration_history[i], mean_weight_history[i]))
-#
 
 
 
@@ -150,8 +56,11 @@ def find_equilibrium(graph_index, state_record):
     global num_nodes, graphs, edge_info, agent_state
 
     new_state = agent_state * 1
+    iteration = 0
+    max_iter = 2**num_nodes
 
-    while True:
+    while iteration < max_iter:
+        iteration = iteration + 1
         for node in range(num_nodes):
             influence_from_neighbor = 0
             for neighbor in range(num_nodes):
@@ -162,84 +71,32 @@ def find_equilibrium(graph_index, state_record):
             else: new_state[node] = 0
         if np.array_equal(new_state, agent_state): break
         else:
-            for ind in range(num_nodes):
-                state_record.write("{} ".format(new_state[ind]))
-            state_record.write("\n")
             agent_state = new_state
 
-
-## find the equilibrium of network G given initial state
-#def find_equilibrium(init_state, G, thresholds):
-#
-#    global action_history, mean_weight_history, iteration_history
-#
-#    final_state = list(init_state)
-#    new_state = list(init_state)
-#    num_iterations = 0
-#
-#    # if no equilibrium is found after MAX_ITERATION, then assume that the
-#    # current state is the equilibrium.
-#    while (num_iterations < MAX_EQUILIBRIUM_ITERATION):
-#
-#        state_change = 0
-#
-#        for node in G.nodes():
-#            incoming_neighbors = G.predecessors(node) # in-coming neighbors
-#
-#            # Edited by Sally[4] to get around the dict_keyiterator error below
-#            # and calculate the totla number of neighbors
-#            num_neighbors = 0
-#            for i in enumerate(incoming_neighbors):
-#                num_neighbors += 1
-#            # print("{} ".format(incoming_neighbors))   --- For debugging. Returns <dict_keyiterator object at 0x10543fc78>. why iterator not the list itself
-#            # num_neighbors = len(incoming_neighbors)
-#            sum_action = 0
-#
-#            # the node has no incoming neighbors
-#            if not incoming_neighbors:
-#                continue
-#
-#            # count the number of neighbors who play 1
-#            for neighbor in incoming_neighbors:
-#                sum_action += final_state[neighbor] * \
-#                                G.edge[neighbor][node]['weight']
-#
-#            # switch to 1 since the added weights are more
-#            # than the threshold of the node
-#            if (sum_action >= thresholds[node]):
-#                new_state[node] = 1
-#                if (final_state[node] == 0):
-#                    state_change += 1
-#
-#            # switch to 0 since less than threshold
-#            else:
-#                new_state[node] = 0
-#                if (final_state[node] == 1):
-#                    state_change += 1
-#
-#        final_state = list(new_state)
-#        num_iterations += 1
-#
-#        # if no node switches, resulting in no state changes, then we are at
-#        # equilibrium
-#        if (state_change == 0):
-#            break
-#
-#    action_history.append(final_state)
-#    mean_weight_history.append(compute_mean_weight(final_state, G))
-#    iteration_history.append(num_iterations)
-#
-#    return final_state
+    for ind in range(num_nodes):
+        state_record.write("{} ".format(agent_state[ind]))
+    state_record.write("\n")
 
 
 
-
-def simulate_next_shock(graph_index, state_record, threshold_record):
+def simulate_next_shock(graph_index, state_record, threshold_record, shock_record):
     global num_nodes, edge_info, graphs, agent_state, agent_thresholds
-    shock_value = 
+    shock_value = np.random.uniform(-1, 1, 1)
+    shocked_agent = np.random.binomial(1, SHOCK_PROB, num_nodes)
+    shock_record.write("Shock value is: {}\n".format(shock_value[0]))
+    shock_record.write("Shocked agents are: {}\n".format(shocked_agent))
+    print("Shock value is {}".format(shock_value[0]))
+    print("Shocked agents are: {}".format(shocked_agent))
 
+    agent_thresholds = agent_thresholds + shock_value * (agent_thresholds - agent_thresholds * agent_thresholds) * shocked_agent
 
+    find_equilibrium(graph_index, state_record)
 
+    for ind in range(num_nodes):
+        threshold_record.write("{:0.3f} ".format(agent_thresholds[ind]))
+    threshold_record.write("\n")
+
+    print("Number of adopters at the new equilibrium is {}".format(sum(agent_state)))
 
 
 
@@ -295,7 +152,7 @@ def main():
             # normalizing weights
             edge_weights = edge_weights/edge_weights_sum*total_weight
 
-            print("Normalized edge weights are: {}".format(edge_weights))
+#            print("Normalized edge weights are: {}".format(edge_weights))
 
             # storing the weights
             # print(list(enumerate(graph.predecessors(node))))
@@ -311,7 +168,7 @@ def main():
     # 1 for adopters and 0 otherwise
     initial_state = np.random.binomial(1, prob_of_initial, num_nodes)
     print(initial_state)
-    print("The number of initial adopters for all graphs are {}".format(sum(initial_state)))
+    print("The number of initial adopters for all graphs are {}\n".format(sum(initial_state)))
 
     # generate initial agent thresholds
     # format: array of real numbers between 0 and 1
@@ -320,10 +177,9 @@ def main():
     for i in range(0, len(initial_thresholds)):
         if (initial_state[i] == 1):
             initial_thresholds[i] = 0
-    print("{}".format(initial_thresholds))
 
 
-    print("{}".format(edge_info))
+#    print("{}".format(edge_info))
 
     # record essential information
     # name files using current time
@@ -335,24 +191,36 @@ def main():
         agent_thresholds = initial_thresholds * 1
 
         # open two files to record information
-        state_record = open("{}_change_of_state_{}".format(graph_name[graph_index], current_time), "w")
-        state_record.write("Number of initial adopters: {}\n\n".format(sum(initial_state)))
-        threshold_record = open("{}_change_of_threshold_{}".format(graph_name[graph_index], current_time), "w")
+        state_record = open("{}_{}_state_hist".format(graph_name[graph_index], current_time), "w")
+        state_record.write("Number of initial adopters: {}\n".format(sum(initial_state)))
+        state_record.write("Initial adoption decision: \n")
+        threshold_record = open("{}_{}_threshold_hist".format(graph_name[graph_index], current_time), "w")
         threshold_record.write("Number of initial adopters: {}\n\n".format(sum(initial_state)))
+        shock_record = open("{}_{}_shock_hist".format(graph_name[graph_index], current_time), "w")
+        edge_info_record = open("{}_{}_edge_info".format(graph_name[graph_index], current_time), "w")
+
+        for neighbor in range(num_nodes):
+            edge_info_record.write("\n{}'s impact: ".format(neighbor))
+            for node in range(num_nodes):
+                edge_info_record.write("{:0.3f} ".format(edge_info[graph_index][neighbor][node]))
 
         # record initial states and intial thresholds
         for ind in range(num_nodes):
             state_record.write("{} ".format(initial_state[ind]))
-            threshold_record.write("{} ".format(initial_thresholds[ind]))
-        state_record.write("\n")
+            threshold_record.write("{:0.3f} ".format(initial_thresholds[ind]))
+
+        state_record.write("\n\n")
         threshold_record.write("\n")
 
-        print("Current graph is: {}".format(graph_name[graph_index]))
+        print("\nCurrent graph is: {}".format(graph_name[graph_index]))
         print("Press enter for next round of shock simulation." +
               "Press t then enter to terminate simulation for this graph and start simulation for the next.")
         user_keypress = input("")
         find_equilibrium(graph_index, state_record)
 
+#        for i in range(0, len(initial_thresholds)):
+#            if (initial_state[i] == 1):
+#                agent_thresholds[i] = INITIAL_ADOPTER_THRESHOLD
 
         # wait for user input
         while(user_keypress == "" or user_keypress == "t"):
@@ -360,8 +228,11 @@ def main():
                 print("End of simulation for {}.\n\n\n\n".format(graph_name[graph_index]))
                 break
             print("Next iteration: ")
-            simulate_next_shock(graph_index, state_record, threshold_record)
+            simulate_next_shock(graph_index, state_record, threshold_record, shock_record)
             user_keypress = input("")
+
+        state_record.close()
+        threshold_record.close()
 
 
 
