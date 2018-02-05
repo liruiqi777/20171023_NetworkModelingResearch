@@ -30,6 +30,7 @@ SHOCK_SD = 0.01
 BARABASI_EDGE_FACTOR = 5
 SHOCK_PROB = 0.2
 GRAPH_TOPOLOGY_NAME = ["random", "barabasi_albert", "watts_strogatz", "star"]
+INITIAL_ADOPTER_GENERATOR = ["greedy", "degree", "influence"]
 INITIAL_ADOPTER_THRESHOLD = 0.001
 
 
@@ -52,11 +53,71 @@ agent_thresholds = []
 num_initial_adopter = 0
 
 
-#def initial_adopter_selection_by_degree():
-#
-#
-#
-#def initial_adopter_selection_by_influence():
+def initial_adopter_selection_by_degree(graph_index):
+    global edge_info, num_initial_adopter
+
+    print(num_initial_adopter)
+
+    node_degree = [0] * num_nodes
+
+    for node in range(num_nodes):
+        for neighbor in range(num_nodes):
+            if (edge_info[graph_index][node][neighbor] != 0):
+                node_degree[node] = node_degree[node] + 1
+
+    node_degree_copy = node_degree * 1
+
+    for i in range(num_nodes):
+        for j in range(i, num_nodes):
+            if (node_degree[i] < node_degree[j]):
+                temp = node_degree[i]
+                node_degree[i] = node_degree[j]
+                node_degree[j] = temp
+    lowest_degree = node_degree[num_initial_adopter-1]
+
+    initial_adopter_by_degree = [0] * num_nodes
+    for node in range(num_nodes):
+        if (node_degree_copy[node] >= lowest_degree):
+            initial_adopter_by_degree[node] = 1
+        if (sum(initial_adopter_by_degree) == num_initial_adopter): break
+
+    print(node_degree)
+    print(lowest_degree)
+
+    return initial_adopter_by_degree
+
+
+
+
+
+def initial_adopter_selection_by_influence(graph_index):
+    global edge_info, num_initial_adopter
+
+    print(num_initial_adopter)
+
+    node_influence = []
+    for node in range(num_nodes):
+        node_influence.append(sum(edge_info[graph_index][node]))
+    node_influence_copy = node_influence*1
+    for i in range(num_nodes):
+        for j in range(i, num_nodes):
+            if (node_influence[i] < node_influence[j]):
+                temp = node_influence[i]
+                node_influence[i] =node_influence[j]
+                node_influence[j] = temp
+    lowest_influence = node_influence[num_initial_adopter-1]
+
+    print(node_influence)
+    print(lowest_influence)
+
+    initial_adopter_by_influence = [0] * num_nodes
+    for node in range(num_nodes):
+        if (node_influence_copy[node] >= lowest_influence):
+            initial_adopter_by_influence[node] = 1
+        if (sum(initial_adopter_by_influence) == num_initial_adopter): break
+
+    return initial_adopter_by_influence
+
 
 
 
@@ -110,16 +171,18 @@ def initial_adopter_selection_greedy(graph_index):
         state = new_state * 1
         to_choose = [0] * num_nodes
 
+    num_initial_adopter = sum(greedy_optimal)
+
     return greedy_optimal
 
 
 
 def find_initial_adopter(graph_index):
     global initial_state
+    initial_state = []
     initial_state.append(initial_adopter_selection_greedy(graph_index))
-    print("{}".format(initial_state[0]))
-#    initial_state.append(initial_adopter_selection_by_degree())
-#    initial_state.append(initial_adopter_selection_by_influence())
+    initial_state.append(initial_adopter_selection_by_degree(graph_index))
+    initial_state.append(initial_adopter_selection_by_influence(graph_index))
 
 
 
@@ -242,93 +305,105 @@ def main():
 
 
 
-#    print("{}".format(edge_info))
+    # print("{}".format(edge_info))
 
     # record essential information
     # name files using current time
     current_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
 
-
     for graph_index, graph in enumerate(graphs):
-
-
-        # generating an initial state for all agents
-        # format: array of 0 and 1 indicating the intial adoption decision
+        # generating initial state for all agents
+        # format: array of 0 and 1 indicating the initial adoption decision
         # 1 for adopters and 0 otherwise
-        # initial_state = np.random.binomial(1, prob_of_initial, num_nodes)
-        find_initial_adopter(graph_index);
-        print(initial_state[0])
+        find_initial_adopter(graph_index)
         print("The number of initial adopters for {} are {}\n".format(graph_name[graph_index], sum(initial_state[0])))
-
-        for neighbor in range(num_nodes):
-            print("\n{}'s impact: ".format(neighbor))
-            for node in range(num_nodes):
-                print("{:0.3f} ".format(edge_info[graph_index][neighbor][node]))
-
-        print("\n\n")
-        print(initial_thresholds)
+        print("Using greedy algorithm, the initial states are {}\n".format(initial_state[0]))
+        print("Using the degree approach, the initial states are {}\n".format(initial_state[1]))
+        print("Using the total influence approach, the initial states are {}\n\n".format(initial_state[2]))
 
 
 
 
-        for i in range(0, len(initial_thresholds)):
-            if (initial_state[i] == 1):
-                initial_thresholds[i] = 0
-
-#        round_num = 0
+#    for graph_index, graph in enumerate(graphs):
 #
 #
-#        agent_state = initial_state * 1
-#        agent_thresholds = initial_thresholds * 1
-#
-#        # open two files to record information
-#        state_record = open("{}_{}_state_hist".format(graph_name[graph_index], current_time), "w")
-#        state_record.write("Number of initial adopters: {}\n".format(sum(initial_state)))
-#        state_record.write("Initial adoption decision: \n")
-#        threshold_record = open("{}_{}_threshold_hist".format(graph_name[graph_index], current_time), "w")
-#        threshold_record.write("Number of initial adopters: {}\n\n".format(sum(initial_state)))
-#        shock_record = open("{}_{}_shock_hist".format(graph_name[graph_index], current_time), "w")
-#        edge_info_record = open("{}_{}_edge_info".format(graph_name[graph_index], current_time), "w")
+#        # generating an initial state for all agents
+#        # format: array of 0 and 1 indicating the intial adoption decision
+#        # 1 for adopters and 0 otherwise
+#        # initial_state = np.random.binomial(1, prob_of_initial, num_nodes)
+#        find_initial_adopter(graph_index)
+#        print(initial_state[0])
+#        print("The number of initial adopters for {} are {}\n".format(graph_name[graph_index], sum(initial_state[0])))
 #
 #        for neighbor in range(num_nodes):
-#            edge_info_record.write("\n{}'s impact: ".format(neighbor))
+#            print("\n{}'s impact: ".format(neighbor))
 #            for node in range(num_nodes):
-#                edge_info_record.write("{:0.3f} ".format(edge_info[graph_index][neighbor][node]))
+#                print("{:0.3f} ".format(edge_info[graph_index][neighbor][node]))
 #
-#        # record initial states and intial thresholds
-#        threshold_record.write("Round {}: ".format(round_num))
-#        state_record.write("Round {}: ".format(round_num))
-#        for ind in range(num_nodes):
-#            state_record.write("{} ".format(initial_state[ind]))
-#            threshold_record.write("{:0.3f} ".format(initial_thresholds[ind]))
+#        print("\n\n")
+#        print(initial_thresholds)
 #
-#        state_record.write("\n\n")
-#        threshold_record.write("\n")
 #
-#        print("\nCurrent graph is: {}".format(graph_name[graph_index]))
-#        print("Press enter for next round of shock simulation." +
-#              "Press t then enter to terminate simulation for this graph and start simulation for the next.")
-#        user_keypress = input("")
-#        find_equilibrium(graph_index, state_record, 0)
 #
-##        for i in range(0, len(initial_thresholds)):
-##            if (initial_state[i] == 1):
-##                agent_thresholds[i] = INITIAL_ADOPTER_THRESHOLD
 #
-#        # wait for user input
-#        while(user_keypress == "" or user_keypress == "t"):
-#            round_num = round_num + 1
-#            if (user_keypress == "t"):
-#                print("End of simulation for {}.\n\n\n\n".format(graph_name[graph_index]))
-#                break
-#            print("Next iteration: ")
-#            simulate_next_shock(graph_index, state_record, threshold_record, shock_record, round_num)
-#            user_keypress = input("")
+#        for i in range(0, len(initial_thresholds)):
+#            if (initial_state[i] == 1):
+#                initial_thresholds[i] = 0
 #
-#        state_record.close()
-#        threshold_record.close()
-#        edge_info_record.close()
-#        shock_record.close()
+##        round_num = 0
+##
+##
+##        agent_state = initial_state * 1
+##        agent_thresholds = initial_thresholds * 1
+##
+##        # open two files to record information
+##        state_record = open("{}_{}_state_hist".format(graph_name[graph_index], current_time), "w")
+##        state_record.write("Number of initial adopters: {}\n".format(sum(initial_state)))
+##        state_record.write("Initial adoption decision: \n")
+##        threshold_record = open("{}_{}_threshold_hist".format(graph_name[graph_index], current_time), "w")
+##        threshold_record.write("Number of initial adopters: {}\n\n".format(sum(initial_state)))
+##        shock_record = open("{}_{}_shock_hist".format(graph_name[graph_index], current_time), "w")
+##        edge_info_record = open("{}_{}_edge_info".format(graph_name[graph_index], current_time), "w")
+##
+##        for neighbor in range(num_nodes):
+##            edge_info_record.write("\n{}'s impact: ".format(neighbor))
+##            for node in range(num_nodes):
+##                edge_info_record.write("{:0.3f} ".format(edge_info[graph_index][neighbor][node]))
+##
+##        # record initial states and intial thresholds
+##        threshold_record.write("Round {}: ".format(round_num))
+##        state_record.write("Round {}: ".format(round_num))
+##        for ind in range(num_nodes):
+##            state_record.write("{} ".format(initial_state[ind]))
+##            threshold_record.write("{:0.3f} ".format(initial_thresholds[ind]))
+##
+##        state_record.write("\n\n")
+##        threshold_record.write("\n")
+##
+##        print("\nCurrent graph is: {}".format(graph_name[graph_index]))
+##        print("Press enter for next round of shock simulation." +
+##              "Press t then enter to terminate simulation for this graph and start simulation for the next.")
+##        user_keypress = input("")
+##        find_equilibrium(graph_index, state_record, 0)
+##
+###        for i in range(0, len(initial_thresholds)):
+###            if (initial_state[i] == 1):
+###                agent_thresholds[i] = INITIAL_ADOPTER_THRESHOLD
+##
+##        # wait for user input
+##        while(user_keypress == "" or user_keypress == "t"):
+##            round_num = round_num + 1
+##            if (user_keypress == "t"):
+##                print("End of simulation for {}.\n\n\n\n".format(graph_name[graph_index]))
+##                break
+##            print("Next iteration: ")
+##            simulate_next_shock(graph_index, state_record, threshold_record, shock_record, round_num)
+##            user_keypress = input("")
+##
+##        state_record.close()
+##        threshold_record.close()
+##        edge_info_record.close()
+##        shock_record.close()
 
 
 
