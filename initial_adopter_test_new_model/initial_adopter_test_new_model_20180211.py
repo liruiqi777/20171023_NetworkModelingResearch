@@ -24,7 +24,6 @@ from datetime import datetime       # Capture current time
 # ==============================================================================
 # GLOBAL CONSTANTS
 # ==============================================================================
-MAX_DEVIATION = 0.3
 SHOCK_MEAN = 0
 SHOCK_SD = 0.01
 BARABASI_EDGE_FACTOR = 5
@@ -44,12 +43,10 @@ prob_of_initial = 0
 graphs = []
 
 initial_thresholds = []
-initial_state = []
+initial_states = []
 edge_info = []
 agent_state = []
 agent_thresholds = []
-
-
 num_initial_adopter = 0
 
 
@@ -121,68 +118,81 @@ def initial_adopter_selection_by_influence(graph_index):
 
 
 
-def run_one_time_unit(state, node_to_try, thresholds, graph_index):
+def run_til_eq(state, node_to_try, dynamic_threshold):
 
-    global num_nodes, edge_info
+    global edge_info, num_nodes, edge_info
 
-    state[node_to_try] = 1
-    new_state = [0] * num_nodes
+    state_copy = state * 1
+    state_copy[node_to_try] = 1
+    dynamic_threshold_copy = dynamic_threshold * 1
+    dynamic_threshold[node_to_try] = 0
 
-    for node in range(num_nodes):
-        influence_from_neighbor = 0
-        for neighbor in range(num_nodes):
-            influence_from_neighbor = influence_from_neighbor + edge_info[graph_index][neighbor][node] * state[neighbor]
-        if (influence_from_neighbor >= thresholds[node]): new_state[node] = 1
+    new_state = state_copy * 1
 
-    state[node_to_try] = 1
-    return (sum(state)-sum(new_state))
+    while 1:
+        for node in range(num_nodes):
+            if (state_copy[node] == 1): continue
+            influence_from_neighbor = 0
+            for neighbor in range(num_nodes):
+                influence_from_neighbor = influence_from_neighbor + state[neighbor] * edge_info[graph_index][neighbor][node]
+            if(influence_from_neighbor >= dynamic_threshold[node]): new_state[node] = 1
+
+            if(sum(new_state) == sum(state)): break
+
+    return sum(new_state)-sum(state)
 
 
 
 
 
 def initial_adopter_selection_greedy(graph_index):
-    global num_initial_adopter, initial_thresholds, edge_info, num_nodes
+    global initial_thresholds, num_nodes, edge_info
 
-    thresholds = initial_thresholds * 1
-    state = [0] * num_nodes # for finding the initial adopters only
-    new_state = state * 1
-    to_choose = [0] * num_nodes # the array with the number of neighbors it will adopter if he adopters
-    greedy_optimal = [0] * num_nodes # the set of initial adopters to return
+    dynamic_threshold = initial_thresholds * 1
+    num_converted = [-1] * num_nodes
+    greedy_optimal = [0] * num_nodes
 
-    while(sum(state) != num_nodes):
+    state = [0] * num_nodes
+
+    while (sum(greedy_optimal) != num_initial_adopter) && (sum(state) != num_nodes):
         for node in range(num_nodes):
-            if (state[node] != 0):
-                to_choose[node] = run_one_time_unit(state, node, thresholds, graph_index)
-            if (state[node] == 1):
-                to_choose[node] = -num_nodes
-        index_of_new_adopter = to_choose.index(max(to_choose))
-        state[index_of_new_adopter] = 1
-        greedy_optimal[index_of_new_adopter] = 1
-        thresholds[index_of_new_adopter] = 0
+            if (state[node] != 1):
+                num_converted[node] = run_til_eq(state, node, dynamic_threshold)
+        index = num_converted.index(max(num_converted))
+        dynamic_threshold[index] = 0
+        num_converted = [-1] * num_nodes
+        greedy_optimal[index] = 1
+        state[index] = 1
 
-        for node in range(num_nodes):
-            influence_from_neighbor = 0
-            for neighbor in range(num_nodes):
-                    influence_from_neighbor = influence_from_neighbor + edge_info[graph_index][neighbor][node] * state[neighbor]
-            if (influence_from_neighbor >= thresholds[node]): new_state[node] = 1
-            else: new_state[node] = 0
+        new_state = state * 1
 
-        state = new_state * 1
-        to_choose = [0] * num_nodes
+        while 1:
+            for node in range(num_nodes):
+                if (state[node] == 1): continue
+                influence_from_neighbor = 0
+                for neighbor in range(num_nodes):
+                    influence_from_neighbor = influence_from_neighbor + state[neighbor] * edge_info[graph_index][neighbor][node]
+                if(influence_from_neighbor >= dynamic_threshold[node]): new_state[node] = 1
 
-    num_initial_adopter = sum(greedy_optimal)
+            if(sum(new_state) == sum(state)):
+                state = new_state * 1
+                break
+
+            state = new_state * 1
+
 
     return greedy_optimal
 
 
 
+
+
 def find_initial_adopter(graph_index):
-    global initial_state
-    initial_state = []
-    initial_state.append(initial_adopter_selection_greedy(graph_index))
-    initial_state.append(initial_adopter_selection_by_degree(graph_index))
-    initial_state.append(initial_adopter_selection_by_influence(graph_index))
+    global initial_states
+    initial_states = []
+    initial_states.append(initial_adopter_selection_greedy(graph_index))
+    initial_states.append(initial_adopter_selection_by_degree(graph_index))
+    initial_states.append(initial_adopter_selection_by_influence(graph_index))
 
 
 
@@ -237,17 +247,16 @@ def simulate_next_shock(graph_index, state_record, threshold_record, shock_recor
 
 def main():
 
-    global num_nodes, prob_of_initial, edge_info, initial_state, initial_thresholds, graphs, agent_state, agent_thresholds
+    global num_nodes, num_initial_adopter, edge_info, initial_state, initial_thresholds, graphs, agent_state, agent_thresholds
 
     argv = sys.argv
     argc = len(argv)
 
     # processing command line input
     if (argc == 3):
-        num_nodes, prob_of_initial = list(map(float, argv[1:]))
-        num_nodes = int(num_nodes)
+        num_nodes, num_initial_adopter = list(map(int, argv[1:]))
 
-        if (prob_of_initial < 0 or prob_of_initial > 1):
+        if (num_initial_adopter < 1):
             print("Invalid initial adoption probability. Please make sure the value is between 0 and 1.")
             sys.exit()
 
@@ -256,8 +265,8 @@ def main():
         print("Correct command line format: new_model_20171115.py <num_nodes> <probability of initial adoption>")
         sys.exit()
 
-    print("There are {} agents in the game and the probability of initial adoption is {}."
-        .format(num_nodes, prob_of_initial))
+    print("There are {} agents in the game and {} of them are initial adopters."
+        .format(num_nodes, num_initial_adopter))
 
     # generate random graphs
     random.seed(None)
@@ -316,10 +325,9 @@ def main():
         # format: array of 0 and 1 indicating the initial adoption decision
         # 1 for adopters and 0 otherwise
         find_initial_adopter(graph_index)
-        print("The number of initial adopters for {} are {}\n".format(graph_name[graph_index], sum(initial_state[0])))
-        print("Using greedy algorithm, the initial states are {}\n".format(initial_state[0]))
-        print("Using the degree approach, the initial states are {}\n".format(initial_state[1]))
-        print("Using the total influence approach, the initial states are {}\n\n".format(initial_state[2]))
+        print("Using greedy algorithm, the initial states are {}\n".format(initial_states[0]))
+        print("Using the degree approach, the initial states are {}\n".format(initial_states[1]))
+        print("Using the total influence approach, the initial states are {}\n\n".format(initial_states[2]))
 
 
 
