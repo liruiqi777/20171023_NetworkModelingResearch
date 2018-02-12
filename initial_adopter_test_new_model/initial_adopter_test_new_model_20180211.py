@@ -145,15 +145,12 @@ def initial_adopter_selection_greedy(graph_index):
 
     state = [0] * num_nodes
 
-    print(dynamic_threshold)
 
     while ((sum(greedy_optimal) != num_initial_adopter) and (sum(state) != num_nodes)):
         for node in range(num_nodes):
             if (state[node] != 1):
                 num_converted[node] = run_til_eq(graph_index, state, node, dynamic_threshold)
         index = num_converted.index(max(num_converted))
-        print(num_converted)
-        print(index)
         dynamic_threshold[index] = 0
         num_converted = [-1] * num_nodes
         greedy_optimal[index] = 1
